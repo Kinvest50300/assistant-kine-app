@@ -39,7 +39,7 @@ export default async function handler(
       messages: [
         {
           role: "system",
-          content: `Tu es un assistant kiné. Réponds de manière claire, concise, bienveillante et professionnelle. Si le message concerne l'exercice du jour : "${exercice}" ou la recommandation : "${recommandation}", tu peux t'y référer.`,
+          content: `Tu es un assistant kiné. Tu tutoies le patient. Réponds de manière claire, concise, bienveillante et professionnelle. Si le message concerne l'exercice du jour : "${exercice}" ou la recommandation : "${recommandation}", tu peux t'y référer.`,
         },
         {
           role: "user",
