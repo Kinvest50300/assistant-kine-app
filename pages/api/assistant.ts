@@ -14,6 +14,10 @@ const auth = new GoogleAuth({
 
 const sheets = google.sheets("v4");
 
+const openai = new OpenAI({
+  apiKey: OPENAI_API_KEY,
+});
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -32,14 +36,12 @@ export default async function handler(
 
     const { message } = req.body;
 
-    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
-          content: `Tu es un assistant kiné. Tu tutoies le patient. Réponds de manière claire, concise, bienveillante et professionnelle. Si le message concerne l'exercice du jour : "${exercice}" ou la recommandation : "${recommandation}", tu peux t'y référer.`,
+          content: `Tu es un assistant kiné. Réponds de manière claire, concise, bienveillante et professionnelle. Si le message concerne l'exercice du jour : "${exercice}" ou la recommandation : "${recommandation}", tu peux t'y référer.`,
         },
         {
           role: "user",
@@ -49,7 +51,6 @@ export default async function handler(
     });
 
     const botReply = completion.choices[0].message?.content;
-
     res.status(200).json({ reply: botReply });
   } catch (error) {
     console.error("Erreur API assistant:", error);
