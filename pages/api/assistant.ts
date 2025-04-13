@@ -32,9 +32,7 @@ export default async function handler(
 
     const { message } = req.body;
 
-    const openai = new OpenAI({
-      apiKey: OPENAI_API_KEY,
-    });
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
