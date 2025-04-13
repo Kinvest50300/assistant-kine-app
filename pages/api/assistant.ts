@@ -3,21 +3,9 @@ import { google } from "googleapis";
 import { GoogleAuth } from "google-auth-library";
 import OpenAI from "openai";
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const SERVICE_ACCOUNT_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-
-if (!SHEET_ID || !OPENAI_API_KEY || !SERVICE_ACCOUNT_KEY) {
-  throw new Error("⛔️ Variables d'environnement manquantes.");
-}
-
-let serviceAccount: any;
-
-try {
-  serviceAccount = JSON.parse(SERVICE_ACCOUNT_KEY);
-} catch (error) {
-  throw new Error("⛔️ Impossible de parser GOOGLE_SERVICE_ACCOUNT_KEY");
-}
+const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
+const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY!);
 
 const auth = new GoogleAuth({
   credentials: serviceAccount,
@@ -44,10 +32,6 @@ export default async function handler(
 
     const { message } = req.body;
 
-    if (!message || typeof message !== "string") {
-      return res.status(400).json({ error: "Message invalide." });
-    }
-
     const openai = new OpenAI({
       apiKey: OPENAI_API_KEY,
     });
@@ -66,11 +50,11 @@ export default async function handler(
       ],
     });
 
-    const botReply = completion.choices[0]?.message?.content;
+    const botReply = completion.choices[0].message?.content;
 
-    res.status(200).json({ reply: botReply ?? "Désolé, je n'ai pas compris." });
+    res.status(200).json({ reply: botReply });
   } catch (error) {
-    console.error("❌ Erreur API assistant:", error);
+    console.error("Erreur API assistant:", error);
     res.status(500).json({ error: "Erreur interne du serveur." });
   }
 }
