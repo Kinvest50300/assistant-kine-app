@@ -1,34 +1,47 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { google } from "googleapis";
+import { GoogleAuth } from "google-auth-library";
 import OpenAI from "openai";
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
+const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY!);
+
+const auth = new GoogleAuth({
+  credentials: serviceAccount,
+  scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
 });
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+const sheets = google.sheets("v4");
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Méthode non autorisée" });
-  }
-
-  const { message } = req.body;
-
-  if (!message || typeof message !== "string") {
-    return res.status(400).json({ error: "Message invalide" });
-  }
-
   try {
-    const completion = await openai.createChatCompletion({
+    const client = await auth.getClient();
+    const sheetRes = await sheets.spreadsheets.values.get({
+      auth: client,
+      spreadsheetId: SHEET_ID,
+      range: "Feuille1!A2:B2",
+    });
+
+    const values = sheetRes.data.values?.[0] || [];
+    const exercice = values[0] || "Exercice non défini";
+    const recommandation = values[1] || "";
+
+    const { message } = req.body;
+
+    const openai = new OpenAI({
+      apiKey: OPENAI_API_KEY,
+    });
+
+    const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
-          content:
-            "Tu es un assistant kiné bienveillant. Réponds toujours de façon courte, claire et encourageante.",
+          content: `Tu es un assistant kiné. Réponds de manière claire, concise, bienveillante et professionnelle. Si le message concerne l'exercice du jour : "${exercice}" ou la recommandation : "${recommandation}", tu peux t'y référer.`,
         },
         {
           role: "user",
@@ -37,10 +50,11 @@ export default async function handler(
       ],
     });
 
-    const reply = completion.data.choices[0]?.message?.content?.trim() || "";
-    return res.status(200).json({ reply });
+    const botReply = completion.choices[0].message?.content;
+
+    res.status(200).json({ reply: botReply });
   } catch (error) {
-    console.error("Erreur API OpenAI:", error);
-    return res.status(500).json({ error: "Erreur serveur" });
+    console.error("Erreur API assistant:", error);
+    res.status(500).json({ error: "Erreur interne du serveur." });
   }
 }
