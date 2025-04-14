@@ -27,12 +27,14 @@ export default function AssistantKine() {
     try {
       const res = await fetch("/api/assistant", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ message: input }),
       });
 
       const data = await res.json();
-      setMessages([...newMessages, { from: "bot", text: data.reply }]);
+      setMessages([...newMessages, { from: "bot", text: data.reply || "❌ Pas de réponse du serveur." }]);
     } catch (error) {
       console.error("Erreur lors de l'appel API :", error);
       setMessages([...newMessages, { from: "bot", text: "❌ Erreur de connexion." }]);
