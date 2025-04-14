@@ -23,7 +23,8 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    const client = await auth.getClient();
+    import { JWT } from "google-auth-library";
+const client = (await auth.getClient()) as JWT;
     const sheetRes = await sheets.spreadsheets.values.get({
       auth: client,
       spreadsheetId: SHEET_ID,
