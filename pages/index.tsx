@@ -20,7 +20,7 @@ export default function AssistantKine() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const newMessages = [...messages, { from: "user", text: input }];
+    const newMessages: { from: "user" | "bot"; text: string }[] = [...messages, { from: "user", text: input }];
     setMessages([...newMessages, { from: "bot", text: "..." }]);
     setInput("");
 
