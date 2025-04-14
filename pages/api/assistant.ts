@@ -23,9 +23,11 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
+    // 👉 Force ici le typage en JWT
     const client = (await auth.getClient()) as JWT;
 
     const sheetRes = await sheets.spreadsheets.values.get({
+      // ✅ On cast ici en `auth: JWT`
       auth: client,
       spreadsheetId: SHEET_ID,
       range: "Feuille1!A2:B2",
