@@ -1,7 +1,9 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 
 export default function AssistantKine() {
   const [prenom, setPrenom] = useState("");
+  const [patientData, setPatientData] = useState<any>(null);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{ from: "user" | "bot"; text: string }[]>([]);
 
@@ -12,15 +14,30 @@ export default function AssistantKine() {
     day: "numeric",
   });
 
-  const exerciceDuJour = "Jogging";
-  const consignesGenerales = "Respire profondément. Ne force jamais sur la douleur.";
-  const recommandationsPerso = "";
   const phraseMotivante = "Tu progresses chaque jour 💪 Continue comme ça !";
+
+  useEffect(() => {
+    const fetchPatientData = async () => {
+      if (!prenom) return;
+      try {
+        const res = await fetch("/api/assistant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "fetch-data", prenom }),
+        });
+        const data = await res.json();
+        setPatientData(data);
+      } catch (err) {
+        console.error("Erreur récupération données patient:", err);
+      }
+    };
+
+    fetchPatientData();
+  }, [prenom]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
-
-    const newMessages: { from: "user" | "bot"; text: string }[] = [...messages, { from: "user", text: input }];
+    const newMessages = [...messages, { from: "user", text: input }];
     setMessages([...newMessages, { from: "bot", text: "..." }]);
     setInput("");
 
@@ -30,7 +47,7 @@ export default function AssistantKine() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ type: "chat", prenom, message: input }),
       });
 
       const data = await res.json();
@@ -53,13 +70,13 @@ export default function AssistantKine() {
         />
       )}
 
-      {prenom && (
+      {prenom && patientData && (
         <div className="space-y-4">
           <div className="bg-white rounded-xl shadow p-4">
             <p><strong>📅 Date :</strong> {dateDuJour}</p>
-            <p><strong>🧘‍♂️ Exercice du jour :</strong> {exerciceDuJour}</p>
-            <p><strong>📌 Consignes générales :</strong> {consignesGenerales}</p>
-            <p><strong>🩺 Recommandations personnalisées :</strong> {recommandationsPerso}</p>
+            <p><strong>🧘‍♂️ Exercice du jour :</strong> {patientData.exercice_du_jour}</p>
+            <p><strong>📌 Consignes générales :</strong> Respire profondément. Ne force jamais sur la douleur.</p>
+            <p><strong>🩺 Recommandations personnalisées :</strong> {patientData.remarques || "Aucune"}</p>
             <p className="italic text-blue-600 mt-2">“{phraseMotivante}”</p>
           </div>
 

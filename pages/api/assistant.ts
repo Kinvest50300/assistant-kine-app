@@ -1,65 +1,60 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { google } from "googleapis";
-import { GoogleAuth, JWT } from "google-auth-library";
-import OpenAI from "openai";
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY!);
+import { google } from 'googleapis';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { OpenAI } from 'openai';
 
-const auth = new GoogleAuth({
-  credentials: serviceAccount,
-  scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY || '{}');
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const auth = new google.auth.GoogleAuth({
+  credentials: SERVICE_ACCOUNT_KEY,
+  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
 });
 
-const sheets = google.sheets("v4");
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).end();
 
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
-});
+  const { type, prenom, message } = req.body;
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  // ✅ Empêche les requêtes GET
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Méthode non autorisée" });
-  }
+  if (!prenom) return res.status(400).json({ error: 'Prénom requis' });
 
   try {
-    const client = (await auth.getClient()) as JWT;
-
-    const sheetRes = await sheets.spreadsheets.values.get({
-      auth: client,
+    const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
+    const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "Feuille1!A2:B2",
+      range: 'Feuille1!A2:E',
     });
 
-    const values = sheetRes.data.values?.[0] || [];
-    const exercice = values[0] || "Exercice non défini";
-    const recommandation = values[1] || "";
+    const rows = result.data.values || [];
+    const patient = rows.find(row => row[1]?.toLowerCase() === prenom.toLowerCase());
 
-    const { message } = req.body;
+    if (!patient) return res.status(404).json({ error: 'Patient non trouvé' });
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: `Tu es un assistant kiné. Réponds de manière claire, concise, bienveillante et professionnelle. Si le message concerne l'exercice du jour : "${exercice}" ou la recommandation : "${recommandation}", tu peux t'y référer.`,
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
-    });
+    const [id, nom, email, exercice_du_jour, remarques] = patient;
 
-    const botReply = completion.choices[0].message?.content;
-    res.status(200).json({ reply: botReply });
+    if (type === 'fetch-data') {
+      return res.status(200).json({ exercice_du_jour, remarques });
+    }
+
+    if (type === 'chat') {
+      const prompt = `Tu es un assistant kiné bienveillant. Le prénom du patient est ${prenom}.
+      Son exercice du jour est : ${exercice_du_jour}.
+      Recommandations : ${remarques}.
+      Question : ${message}
+      Réponds de manière courte, naturelle, en le tutoyant.`;
+
+      const completion = await openai.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'gpt-3.5-turbo',
+      });
+
+      return res.status(200).json({ reply: completion.choices[0].message.content });
+    }
+
+    res.status(400).json({ error: 'Type de requête inconnu' });
   } catch (error) {
-    console.error("Erreur API assistant:", error);
-    res.status(500).json({ error: "Erreur interne du serveur." });
+    console.error(error);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 }
