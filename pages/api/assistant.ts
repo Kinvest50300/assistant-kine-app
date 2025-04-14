@@ -22,12 +22,15 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // ✅ Empêche les requêtes GET
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Méthode non autorisée" });
+  }
+
   try {
-    // 👉 Force ici le typage en JWT
     const client = (await auth.getClient()) as JWT;
 
     const sheetRes = await sheets.spreadsheets.values.get({
-      // ✅ On cast ici en `auth: JWT`
       auth: client,
       spreadsheetId: SHEET_ID,
       range: "Feuille1!A2:B2",
