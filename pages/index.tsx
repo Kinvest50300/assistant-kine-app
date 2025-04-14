@@ -3,7 +3,7 @@ import { useState } from "react";
 export default function AssistantKine() {
   const [prenom, setPrenom] = useState("");
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<{ from: "user" | "bot"; text: string }[]>([]);
 
   const dateDuJour = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -17,21 +17,31 @@ export default function AssistantKine() {
   const recommandationsPerso = "";
   const phraseMotivante = "Tu progresses chaque jour 💪 Continue comme ça !";
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
+
     const newMessages = [...messages, { from: "user", text: input }];
-    setMessages([
-      ...newMessages,
-      { from: "bot", text: "(Réponse à venir...)" },
-    ]);
+    setMessages([...newMessages, { from: "bot", text: "..." }]);
     setInput("");
+
+    try {
+      const res = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input }),
+      });
+
+      const data = await res.json();
+      setMessages([...newMessages, { from: "bot", text: data.reply }]);
+    } catch (error) {
+      console.error("Erreur lors de l'appel API :", error);
+      setMessages([...newMessages, { from: "bot", text: "❌ Erreur de connexion." }]);
+    }
   };
 
   return (
     <div className="p-6 max-w-2xl mx-auto text-gray-800">
-      <h1 className="text-3xl font-bold text-blue-800 mb-4">
-        Assistant Kiné
-      </h1>
+      <h1 className="text-3xl font-bold text-blue-800 mb-4">Assistant Kiné</h1>
 
       {!prenom && (
         <input
@@ -44,19 +54,10 @@ export default function AssistantKine() {
       {prenom && (
         <div className="space-y-4">
           <div className="bg-white rounded-xl shadow p-4">
-            <p>
-              <strong>📅 Date :</strong> {dateDuJour}
-            </p>
-            <p>
-              <strong>🧘‍♂️ Exercice du jour :</strong> {exerciceDuJour}
-            </p>
-            <p>
-              <strong>📌 Consignes générales :</strong> {consignesGenerales}
-            </p>
-            <p>
-              <strong>🩺 Recommandations personnalisées :</strong>{" "}
-              {recommandationsPerso}
-            </p>
+            <p><strong>📅 Date :</strong> {dateDuJour}</p>
+            <p><strong>🧘‍♂️ Exercice du jour :</strong> {exerciceDuJour}</p>
+            <p><strong>📌 Consignes générales :</strong> {consignesGenerales}</p>
+            <p><strong>🩺 Recommandations personnalisées :</strong> {recommandationsPerso}</p>
             <p className="italic text-blue-600 mt-2">“{phraseMotivante}”</p>
           </div>
 
