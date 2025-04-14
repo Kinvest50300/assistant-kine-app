@@ -1,7 +1,6 @@
-import { JWT } from "google-auth-library";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { google } from "googleapis";
-import { GoogleAuth } from "google-auth-library";
+import { GoogleAuth, JWT } from "google-auth-library";
 import OpenAI from "openai";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID!;
@@ -24,8 +23,8 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    import { JWT } from "google-auth-library";
-const client = (await auth.getClient()) as JWT;
+    const client = (await auth.getClient()) as JWT;
+
     const sheetRes = await sheets.spreadsheets.values.get({
       auth: client,
       spreadsheetId: SHEET_ID,
