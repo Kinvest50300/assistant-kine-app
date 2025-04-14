@@ -1,3 +1,4 @@
+import { JWT } from "google-auth-library";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { google } from "googleapis";
 import { GoogleAuth } from "google-auth-library";
