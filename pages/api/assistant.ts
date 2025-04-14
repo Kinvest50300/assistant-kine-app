@@ -20,7 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!prenom) return res.status(400).json({ error: 'Prénom requis' });
 
   try {
-    const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
+    const authClient = (await auth.getClient()) as any;
+    const sheets = google.sheets({ version: 'v4', auth: authClient });
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: 'Feuille1!A2:E',
