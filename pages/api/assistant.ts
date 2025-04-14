@@ -21,7 +21,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const authClient = (await auth.getClient()) as any;
-    const sheets = google.sheets({ version: 'v4', auth: authClient });
+    const authClient = await auth.getClient();
+const sheets = google.sheets({ version: 'v4' });
+google.options({ auth: authClient });
+
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: 'Feuille1!A2:E',
